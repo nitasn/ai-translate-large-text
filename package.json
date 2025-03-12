@@ -1,0 +1,19 @@
+{
+  "name": "subs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.mjs",
+  "scripts": {
+    "start": "node -r dotenv/config main.mjs"
+  },
+  "keywords": [],
+  "author": "Nitsan & Avner BenHanoch",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "jsdom": "^26.0.0",
+    "marked": "^15.0.7",
+    "openai": "^4.87.2"
+  }
+}
