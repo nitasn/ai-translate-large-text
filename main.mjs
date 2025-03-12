@@ -14,15 +14,18 @@ const MAX_CHUNKS_TO_TRANSLATE = Infinity;
 
 const MAX_CHUNK_SIZE = 3_000;
 
+
 const allText = fs.readFileSync(INPUT_PATH, "utf-8");
 
 const chunks = splitTextIntoChunks(allText, MAX_CHUNK_SIZE, splitBy.newlines);
 
-const INITIAL_PROMPT = fs.readFileSync("prompts/initial.txt", "utf-8");
 
-const CONTINUATION_PROMPT = fs.readFileSync("prompts/continuation.txt", "utf-8");
+const PROMPT_INITIAL = fs.readFileSync("prompts/initial.txt", "utf-8");
 
-const SUGGET_NAME_PROMPT = fs.readFileSync("prompts/suggest-document-name.txt", "utf-8");
+const PROMPT_CONTINUATION = fs.readFileSync("prompts/continuation.txt", "utf-8");
+
+const PROMPT_SUGGET_NAME = fs.readFileSync("prompts/suggest-document-name.txt", "utf-8");
+
 
 const OUTPUTS_DIR = "outputs";
 
@@ -39,7 +42,7 @@ const NUM_TAIL_PAIRS = 3;
 
 const allMessagesHistory = [];
 
-allMessagesHistory.push({ role: "system", content: INITIAL_PROMPT });
+allMessagesHistory.push({ role: "system", content: PROMPT_INITIAL });
 
 async function sendMessagesToAI(messages) {
   const chatCompletion = await openai.chat.completions.create({
@@ -60,7 +63,7 @@ async function sendChunkAndAppendHistory(chunk) {
   } else {
     const head = allMessagesHistory.slice(0, 1 + 2 * NUM_HEAD_PAIRS);
     const tail = allMessagesHistory.slice(-(2 * NUM_TAIL_PAIRS + 1));
-    messages = [...head, { role: "system", content: CONTINUATION_PROMPT }, ...tail];
+    messages = [...head, { role: "system", content: PROMPT_CONTINUATION }, ...tail];
   }
 
   const response = await sendMessagesToAI(messages);
@@ -85,7 +88,7 @@ process.on("SIGINT", () => {
   shouldStop = true;
 });
 
-console.log("Starting!");
+console.log("Starting! Gonna take", chunks.length, "chunks.");
 console.log(`building "${OUTPUT_PATH_MARKDOWN}" as we go.\n`);
 
 let documentTitle;
@@ -94,7 +97,7 @@ let resultHtmlPath;
 try {
   const maxIndex = Math.min(MAX_CHUNKS_TO_TRANSLATE, chunks.length);
   for (let index = 0; index < maxIndex; index++) {
-    console.log(`Translating chunk ${index} (${chunks[index].length} chars)...`);
+    console.log(`Translating chunk ${index} / ${chunks.length} (${chunks[index].length} chars)...`);
 
     let timeStart = Date.now();
     const result = await sendChunkAndAppendHistory(chunks[index]);
@@ -110,9 +113,9 @@ try {
     if (index === 0) {
       console.log("Asking AI to name the file.");
       const name = await sendMessagesToAI([
-        { role: "system", content: SUGGET_NAME_PROMPT + "\n" + result }
+        { role: "system", content: PROMPT_SUGGET_NAME + "\n" + result }
       ]);
-      console.log(`AI suggested name: "${name}"`);
+      console.log(`AI suggested name: "${name}"\n`);
       documentTitle = name;
       resultHtmlPath = path.join(OUTPUTS_DIR, name + ".html");
     }
