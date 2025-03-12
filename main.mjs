@@ -10,23 +10,23 @@ import { splitBy, splitTextIntoChunks } from "./utils/split-text.mjs";
 
 const INPUT_PATH = "input.txt";
 
+const MAX_CHUNKS_TO_TRANSLATE = Infinity;
+
 const MAX_CHUNK_SIZE = 3_000;
 
 const allText = fs.readFileSync(INPUT_PATH, "utf-8");
 
 const chunks = splitTextIntoChunks(allText, MAX_CHUNK_SIZE, splitBy.newlines);
 
-const MAX_CHUNKS_TO_TRANSLATE = 5;
-
 const INITIAL_PROMPT = fs.readFileSync("prompts/initial.txt", "utf-8");
 
 const CONTINUATION_PROMPT = fs.readFileSync("prompts/continuation.txt", "utf-8");
 
+const SUGGET_NAME_PROMPT = fs.readFileSync("prompts/suggest-document-name.txt", "utf-8");
+
 const OUTPUTS_DIR = "outputs";
 
 const OUTPUT_PATH_MARKDOWN = path.join(OUTPUTS_DIR, "apended.md");
-
-const OUTPUT_PATH_HTML = path.join(OUTPUTS_DIR, "rtl-page.html");
 
 /////////////////////////////////////////////////////////////////////
 ///           A I   &   M E S S A G E S   H I S T O R Y           ///
@@ -41,7 +41,17 @@ const allMessagesHistory = [];
 
 allMessagesHistory.push({ role: "system", content: INITIAL_PROMPT });
 
-async function translateChunkAndAddToHistory(chunk) {
+async function sendMessagesToAI(messages) {
+  const chatCompletion = await openai.chat.completions.create({
+    messages,
+    model: "gpt-4o",
+    temperature: 0.3,
+  });
+
+  return chatCompletion.choices[0].message.content;
+}
+
+async function sendChunkAndAppendHistory(chunk) {
   allMessagesHistory.push({ role: "user", content: chunk });
 
   let messages;
@@ -53,13 +63,7 @@ async function translateChunkAndAddToHistory(chunk) {
     messages = [...head, { role: "system", content: CONTINUATION_PROMPT }, ...tail];
   }
 
-  const chatCompletion = await openai.chat.completions.create({
-    messages,
-    model: "gpt-4o",
-    temperature: 0.3,
-  });
-
-  const response = chatCompletion.choices[0].message.content;
+  const response = await sendMessagesToAI(messages);
   allMessagesHistory.push({ role: "assistant", content: response });
   return response;
 }
@@ -84,13 +88,16 @@ process.on("SIGINT", () => {
 console.log("Starting!");
 console.log(`building "${OUTPUT_PATH_MARKDOWN}" as we go.\n`);
 
+let documentTitle;
+let resultHtmlPath;
+
 try {
   const maxIndex = Math.min(MAX_CHUNKS_TO_TRANSLATE, chunks.length);
   for (let index = 0; index < maxIndex; index++) {
     console.log(`Translating chunk ${index} (${chunks[index].length} chars)...`);
 
     let timeStart = Date.now();
-    const result = await translateChunkAndAddToHistory(chunks[index]);
+    const result = await sendChunkAndAppendHistory(chunks[index]);
     console.log("Took", ((Date.now() - timeStart) / 1000).toFixed(2), "seconds.\n");
 
     fs.appendFileSync(OUTPUT_PATH_MARKDOWN, result);
@@ -99,6 +106,24 @@ try {
       console.log("Stopped due to SIGINT.\n");
       break;
     }
+
+    if (index === 0) {
+      console.log("Asking AI to name the file.");
+      const name = await sendMessagesToAI([
+        { role: "system", content: SUGGET_NAME_PROMPT + "\n" + result }
+      ]);
+      console.log(`AI suggested name: "${name}"`);
+      documentTitle = name;
+      resultHtmlPath = path.join(OUTPUTS_DIR, name + ".html");
+    }
+
+    const markdown = allMessagesHistory
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content)
+      .join("\n");
+
+    const html = await markdownToHTML(markdown, { title: documentTitle });
+    fs.writeFileSync(resultHtmlPath, html);
   }
   if (!shouldStop) {
     console.log("Done translating!\n");
@@ -106,14 +131,3 @@ try {
 } catch (error) {
   console.error(`Stopped due to error: ${error.message}\n`);
 }
-
-const markdown = allMessagesHistory
-  .filter((m) => m.role === "assistant")
-  .map((m) => m.content)
-  .join("\n");
-
-const html = await markdownToHTML(markdown);
-fs.writeFileSync(OUTPUT_PATH_HTML, html);
-
-console.log("Converted markdown to html.");
-console.log(`Check out "${OUTPUT_PATH_MARKDOWN}".\n`);
