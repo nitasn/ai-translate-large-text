@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import OpenAI from "openai";
 import markdownToHTML from "./utils/md-to-html.mjs";
+import markdownToPDF from "./utils/md-to-pdf.js";
+import htmlFileToPDF from "./utils/html-to-pdf.js";
 import { splitBy, splitTextIntoChunks } from "./utils/split-text.mjs";
 
 /////////////////////////////////////////////////////////////////////
@@ -88,11 +90,31 @@ process.on("SIGINT", () => {
   shouldStop = true;
 });
 
+
+/*
+const BASE_NAME = "שגרת_אימון_3x5_אנדרו_הוברמן";
+const INPUT_PATH_HTML = path.join(OUTPUTS_DIR, BASE_NAME + ".html");
+const OUTPUT_PATH_PDF = path.join(OUTPUTS_DIR, BASE_NAME + ".pdf");
+
+// דוגמת שימוש
+(async () => {
+  try {
+    await htmlFileToPDF(INPUT_PATH_HTML, OUTPUT_PATH_PDF);
+    console.log('PDF Created Successfuly');
+  } catch (err) {
+    console.error('error occured :', err);
+  } finally {
+    process.exit(0);
+  }
+})();
+*/
+
 console.log("Starting! Gonna take", chunks.length, "chunks.");
 console.log(`building "${OUTPUT_PATH_MARKDOWN}" as we go.\n`);
 
 let documentTitle;
 let resultHtmlPath;
+let resultPdfPath;
 
 try {
   const maxIndex = Math.min(MAX_CHUNKS_TO_TRANSLATE, chunks.length);
@@ -118,6 +140,7 @@ try {
       console.log(`AI suggested name: "${name}"\n`);
       documentTitle = name;
       resultHtmlPath = path.join(OUTPUTS_DIR, name + ".html");
+      resultPdfPath = path.join(OUTPUTS_DIR, name + ".pdf");
     }
 
     const markdown = allMessagesHistory
@@ -127,6 +150,11 @@ try {
 
     const html = await markdownToHTML(markdown, { title: documentTitle });
     fs.writeFileSync(resultHtmlPath, html);
+
+    // const pdf = await markdownToPDF(markdown, { title: documentTitle });
+    // fs.writeFileSync(resultPdfPath, pdf);
+    await htmlFileToPDF(resultHtmlPath, resultPdfPath);
+
   }
   if (!shouldStop) {
     console.log("Done translating!\n");
