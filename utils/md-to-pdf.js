@@ -24,6 +24,30 @@ export default async function markdownToPDF(md, { title }) {
 
   const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
 
+
+  await page.pdf({
+//    path: pdfOutputPath,
+    format: 'A4',
+    printBackground: true,
+    displayHeaderFooter: true,
+    footerTemplate: `
+      <div style="font-size:10px; width:100%; text-align:center; padding:5px 0;">
+        <span class="pageNumber"></span> / <span class="totalPages"></span>
+      </div>
+    `,
+    headerTemplate: '<div></div>',
+    margin: {
+      top: '1cm',
+      bottom: '1.5cm',
+      left: '1cm',
+      right: '1cm'
+    }
+  });
+
+
+
+
+
   await browser.close();
 
   return pdfBuffer;

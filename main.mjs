@@ -92,7 +92,7 @@ process.on("SIGINT", () => {
 
 
 /*
-const BASE_NAME = "שגרת_אימון_3x5_אנדרו_הוברמן";
+const BASE_NAME = "טיפים לשריפת שומן במהירות ללא פעילות גופנית";
 const INPUT_PATH_HTML = path.join(OUTPUTS_DIR, BASE_NAME + ".html");
 const OUTPUT_PATH_PDF = path.join(OUTPUTS_DIR, BASE_NAME + ".pdf");
 
@@ -107,7 +107,7 @@ const OUTPUT_PATH_PDF = path.join(OUTPUTS_DIR, BASE_NAME + ".pdf");
     process.exit(0);
   }
 })();
-*/
+//*/
 
 console.log("Starting! Gonna take", chunks.length, "chunks.");
 console.log(`building "${OUTPUT_PATH_MARKDOWN}" as we go.\n`);
