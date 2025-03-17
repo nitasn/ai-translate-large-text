@@ -3,7 +3,7 @@ import path from "node:path";
 import OpenAI from "openai";
 import markdownToHTML from "./utils/md-to-html.mjs";
 import markdownToPDF from "./utils/md-to-pdf.js";
-import htmlFileToPDF from "./utils/html-to-pdf.js";
+import htmlFileToPDF from "./utils/html-to-pdf.mjs";
 import { splitBy, splitTextIntoChunks } from "./utils/split-text.mjs";
 
 /////////////////////////////////////////////////////////////////////
@@ -91,7 +91,7 @@ process.on("SIGINT", () => {
 });
 
 
-/*
+//*
 const BASE_NAME = "טיפים לשריפת שומן במהירות ללא פעילות גופנית";
 const INPUT_PATH_HTML = path.join(OUTPUTS_DIR, BASE_NAME + ".html");
 const OUTPUT_PATH_PDF = path.join(OUTPUTS_DIR, BASE_NAME + ".pdf");
