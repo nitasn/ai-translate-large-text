@@ -9,7 +9,7 @@ export default async function htmlFileToPDF(htmlFilePath, pdfPath) {
   const dom = new JSDOM(htmlContent);
   const document = dom.window.document;
 
-  const headings = document.querySelectorAll('h1, h2, h3');
+  let headings = document.querySelectorAll('h1, h2, h3');
 
   const customStyles = `
     <style>
@@ -44,8 +44,9 @@ export default async function htmlFileToPDF(htmlFilePath, pdfPath) {
         text-decoration: underline;
         color: #005a99;
       }
-      .table-of-contents li.toc-level-2 { margin-right: 0px; }
-      .table-of-contents li.toc-level-3 { margin-right: 20px; }
+      .table-of-contents li.toc-level-1 { margin-right: 0px; }
+      .table-of-contents li.toc-level-2 { margin-right: 20px; }
+      .table-of-contents li.toc-level-3 { margin-right: 40px; }
 
       h1 {
         text-align: center;
@@ -57,10 +58,21 @@ export default async function htmlFileToPDF(htmlFilePath, pdfPath) {
   let tocHtml = `${customStyles}<div class="table-of-contents"><h1>תוכן עניינים</h1><ul>`;
 
   headings.forEach((heading, index) => {
-    if (heading.tagName === 'H1') return; // דילוג על כותרות ראשיות בתוכן העניינים
+    const text = heading.textContent.trim();
+    const match = text.match(/^((\d+\.)+)\s*/); // זיהוי מספור בתחילת הכותרת
+
+    if (!match) return; // רק כותרות עם מספור
+
+    const numbering = match[1];
+    const level = numbering.split('.').filter(Boolean).length; // מספר הרמות במספור
     const id = `heading-${index}`;
     heading.id = id;
-    tocHtml += `<li class="toc-level-${parseInt(heading.tagName[1])}"><a href="#${id}">${heading.textContent}</a></li>`;
+
+    let tocLevel = 1; // ברירת מחדל
+    if (level === 2) tocLevel = 2;
+    else if (level >= 3) tocLevel = 3;
+
+    tocHtml += `<li class="toc-level-${tocLevel}"><a href="#${id}">${heading.textContent}</a></li>`;
   });
 
   tocHtml += '</ul></div><hr/>';
